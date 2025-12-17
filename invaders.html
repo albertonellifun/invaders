@@ -4,21 +4,32 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, xxxmaximum-scale=1.0, xxxuser-scalable=no"/>
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico"/>
-	<title>Space Invaders - Apple ][ Clone</title>
+	<title>Space Invaders - Apple ][ clone</title>
 	<style>
 		body {
 			background:#000;
 			color:#0f0;
 			font-family:monospace;
 			text-align:center;
+			overflow: hidden;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
 		}
-		h1 {
+		h1, p {
 			font-family: monospace;
 			font-size: 12px;
 		}
+		h1, p, canvas {
+			margin: 4px 0;
+			padding: 4px;
+			border: 3px solid #0f0;
+			width: 600px;
+		}
 		canvas {
-			border:3px solid #0f0;
 			image-rendering:pixelated;
+			height: 400px;
 		}
 		#scanlines-overlay {
 			position: absolute;
@@ -38,148 +49,221 @@
 <body>
 	<div id="scanlines-overlay"></div>
 
-	<h1>Space Invaders - Apple ][ Clone</h1>
+	<h1>Space Invaders - Apple ][ clone</h1>
 	<canvas id="game" width="600" height="400"></canvas>
+	<p>[P]: Play/Pause -  [R]: Reset -  [X]: ScanLines -  [B]: B/W</p>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+const WIDTH = 600;
+const HEIGHT = 400;
 const SCALE = 4;
+
 let keys = {};
 let frame = 0;
-let paused = false;
-let scanLinesEnabled = true;
-let bw = false;
 
+//GAME SETUP
+let player = null;
+let bunkers = [];
+let aliens = [];
+let bombs = [];
+let particles = [];//pezzetti di player :-)
+let stars = [];
+
+let ufo = null;
+let dir = 1;
+let baseSpeed = 0.4;
+let alienRowsCount = 6;
+let alienColsCount = 8;
+let groundExplosionTimer = 0;
+
+let paused = false;//pause switch
+let gameover = false;//gameover switch
+let scanLinesEnabled = true;//scanlines switch
+let bw = false;//black&white switch
+let last = performance.now();//LOOOOOOP
+
+
+//controlli
 document.addEventListener("keydown", e => {
-  keys[e.key] = true;
-  if(e.key.toLowerCase() === "p") { paused = !paused; }
-  else if(e.key.toLowerCase() === "r") { resetGame(); }
-  else if(e.key.toLowerCase() === "x") { 
-	scanLinesEnabled = !scanLinesEnabled; 
-	if (scanLinesEnabled) document.getElementById('scanlines-overlay').style.display = 'block';
-	else document.getElementById('scanlines-overlay').style.display = 'none';
-  }
-  else if(e.key.toLowerCase() === "b") { 
-	bw = !bw;
-	if(bw) document.body.style.filter = 'grayscale(1) contrast(4)';
-	else document.body.style.filter = '';
-  }
-  	
+	keys[e.key] = true;
+	
+	if(e.key.toLowerCase() === "p") {
+		//pause
+		paused = !paused;
+	}
+	else if(e.key.toLowerCase() === "r") {
+		//reset
+		resetGame();
+	}
+	else if(e.key.toLowerCase() === "x") {
+		//scanlines
+		scanLinesEnabled = !scanLinesEnabled; 
+		if (scanLinesEnabled) document.getElementById('scanlines-overlay').style.display = 'block';
+		else document.getElementById('scanlines-overlay').style.display = 'none';
+	}
+	else if(e.key.toLowerCase() === "b") { 
+		bw = !bw;
+		if(bw) document.body.style.filter = 'grayscale(1) contrast(4)';
+		else document.body.style.filter = '';
+	}
 });
 document.addEventListener("keyup", e => keys[e.key] = false);
 
-
+//TODO: ALIENI 12x8
 //piccolo: 8x6
 const alien1a = ["00111000",
-	  "01111100",
-	  "11011010",
-	  "11111110",
-	  "00100100",
-	  "01000010"];
+	"01111100",
+	"11011010",
+	"11111110",
+	"00100100",
+	"01000010"];
 const alien1b = ["00111000",
-	  "01111100",
-	  "11011010",
-	  "11111110",
-	  "01000010",
-	  "00100100"];
+	"01111100",
+	"11011010",
+	"11111110",
+	"01000010",
+	"00100100"];
 //capoccione: 8x6
 const alien2a = ["00111100",
-	  "01111110",
-	  "11011101",
-	  "11111111",
-	  "01011010",
-	  "10100101"];
+	"01111110",
+	"11011101",
+	"11111111",
+	"01011010",
+	"10100101"];
 const alien2b = ["00111100",
-	  "01111110",
-	  "11011101",
-	  "11111111",
-	  "10100101",
-	  "01011010"];
+	"01111110",
+	"11011101",
+	"11111111",
+	"10100101",
+	"01011010"];
 //triangolo: 8x6
-const alien3a = ["00011000",
-	  "00111100",
-	  "01111110",
-	  "11011011",
-	  "11111111",
-	  "01000010"];
-const alien3b = ["00011000",
-	  "00111100",
-	  "01111110",
-	  "11011011",
-	  "11111111",
-	  "00100100"];
+const alien3a = [
+	"00011000",
+	"00111100",
+	"01111110",
+	"11011011",
+	"11111111",
+	"01000010"];
+const alien3b = [
+	"00011000",
+	"00111100",
+	"01111110",
+	"11011011",
+	"11111111",
+	"00100100"];
+//alb teschio: 8x6
+const alien4a = [
+	"00011000",
+	"01111110",
+	"11011011",
+	"11111111",
+	"00100100",
+	"01000010"];
+const alien4b = [
+	"00011000",
+	"01111110",
+	"11011011",
+	"11111111",
+	"01000010",
+	"00100100"];
+//alb hola: 8x6
+const alien5a = [
+	"10100101",
+	"11111111",
+	"11011011",
+	"01111110",
+	"00100100",
+	"01000010"];
+const alien5b = [
+	"10100101",
+	"11111111",
+	"11011011",
+	"01111110",
+	"01000010",
+	"00100100"];
+//alb triangolo: 8x6 
+const alien6a = [
+	"00011000",
+	"00111100",
+	"01011010",
+	"01111110",
+	"01000010",
+	"00100100"];
+const alien6b = [
+	"00011000",
+	"00111100",
+	"01011010",
+	"01111110",
+	"10011001",
+	"01000010"];
+
 //player: 11x6 
 const playerTankSprite = [
-      "00000100000",
-	  "00001110000",
-      "01111111110",
-      "11111111111",
-      "11111111111",
-      "11111111111"
-    ];
+    "00000100000",
+	"00001110000",
+    "01111111110",
+    "11111111111",
+    "11111111111",
+    "11111111111"];
 //bunker: 16x10
 const bunkerSprite = [
-      "0011111111111100",
-      "0111111111111110",
-      "1111111111111111",
-      "1111111111111111",
-      "1111111111111111",
-      "1111111111111111",
-      "1111111111111111",
-      "1111111111111111",
-      "1111000000001111",
-      "1111000000001111"
-    ];
+    "0011111111111100",
+    "0111111111111110",
+    "1111111111111111",
+    "1111111111111111",
+    "1111111111111111",
+    "1111111111111111",
+    "1111111111111111",
+    "1111100000011111",
+    "1111000000001111",
+	"1110000000000111"];
 //ufoSprite
 const ufoSprite1 = [
     "000111111000",
     "011111111110",
     "111011101111",
-    "011111111110"
-];
+    "011111111110"];
 const ufoSprite2 = [
     "000111111000",
     "011111111110",
     "110111011101",
-    "011111111110"
-];
+    "011111111110"];
 const ufoSprites = [ ufoSprite1, ufoSprite2 ];
 
 const alienSprites = [
     [alien3a, alien3b],
+	[alien5a, alien5b],
 	[alien2a, alien2b],
-	[alien1a, alien1b]    
-];
+	[alien4a, alien4b],
+	[alien6a, alien6b],	
+	[alien1a, alien1b]];
 
 const bombSprite1 = [
 	"010",
 	"100",
 	"010",
-	"100"
-];
+	"100"];
 const bombSprite2 = [
 	"100",
 	"010",
 	"100",
-	"010"
-];
+	"010"];
 const bombSprite3 = [
 	"010",
 	"001",
 	"010",
-	"001"
-];
+	"001"];
 const bombSprite4 = [
 	"001",
 	"010",
 	"001",
-	"010"
-];
+	"010"];
 const bombSprites = [bombSprite1, bombSprite2, bombSprite3, bombSprite4];
 
-const bulletSprite = ["010","010","010","010","010","010"];//bullet: 3x6
+const bulletSprite = ["010","010","010","010"];//bullet: 3x4
 
 
 //disegna in modo quadrettoso [0=pixel spento, 1=pixel acceso]
@@ -206,9 +290,9 @@ function drawSprite(sprite, x, y){
 
 //player terrestre incline ad esportare la democrazia nell'universo
 class Player {
-  constructor(){
-    this.x = 280; 
-	this.y = 380; 
+  constructor(x, y){
+    this.x = x; 
+	this.y = y; 
 	this.alive = true; 
 	this.bullet = null;
     this.sprite = playerTankSprite;
@@ -225,7 +309,7 @@ class Player {
 	if(this.bullet){
       this.bullet.y -= 6;
 	  //disegna bullet
-	  drawSprite(bulletSprite, this.bullet.x, this.bullet.y);//bullet:3x6
+	  drawSprite(bulletSprite, this.bullet.x, this.bullet.y);//bullet: 3x4
       if(this.bullet.y < 0) this.bullet = null;
     }
 	//disegna cannone
@@ -235,12 +319,12 @@ class Player {
 
 //alieni cattivi ma stupidi
 class Alien {
-  constructor(x,y,sprite){
+  constructor(x, y, sprite){
 	this.x = x;
 	this.y = y;
 	this.sprite = sprite;
 	this.alive = true;
-	this.bombCooldown = Math.random()*200; // timer casuale per sparo
+	this.bombCooldown = Math.random() * 200;//timer casuale per sparo
 	}
   	
   update(speed){ 
@@ -272,7 +356,7 @@ class Alien {
 class Bunker {
   constructor(x){
     this.x = x; 
-	this.y = 320;
+	this.y = HEIGHT - 80;
     this.mask = bunkerSprite.map(r=>r.split(""));//array di caratteri, le stringhe sono immutabili
 	this.alive = true;
   }
@@ -320,7 +404,7 @@ class Bomb {
 		this.alive = true;
     }
     update(){
-	    if(this.y > 400) this.alive = false;
+	    if(this.y > HEIGHT) this.alive = false;
 		if(!this.alive) return;
         
 		this.y += 3;
@@ -332,6 +416,7 @@ class Bomb {
         if(player.alive && Math.abs(this.x - player.x) <= 6 * SCALE && Math.abs(this.y - player.y)<= 3 * SCALE) {
 			doExplode(player.x, player.y, 40);
 			player.alive = false;
+			setTimeout(function(){ player.alive = true;},3000);
 		}
 		
         // collision bunker
@@ -363,7 +448,7 @@ class UFO {
 			player.bullet = null;
         }
 		
-        if(this.x > 600) this.alive = false;
+        if(this.x > WIDTH) this.alive = false;
 		
 		//disegna
 		drawSprite(this.sprite[Math.floor(frame/10)%2], this.x, this.y);//ufo: 12x4
@@ -381,7 +466,7 @@ class Particle {
 	  this.life = life;
     }
     update(dt){
-      if(this.life <= 0 || this.x <= 0 || this.x >= 600 || this.y <= 0 || this.y >= 400) return;
+      if(this.life <= 0 || this.x < 0 || this.x > WIDTH || this.y < 0 || this.y > HEIGHT) return;
 	  this.x = this.x + this.vx*dt;
       this.y = this.y + this.vy*dt;
       this.life -= dt;
@@ -403,24 +488,46 @@ function doExplode(x,y,qty){
 	}
 }
 
+
+//stelline in cielo 
+class Star {
+    constructor(x, y, size) {
+		this.x = x;
+		this.y = y;
+		this.size = size;
+	}
+	
+	draw(ctx) {
+		ctx.fillRect(this.x, this.y, this.size, this.size);
+	}
+}
+
+
+//background stellare
+function spawnStars(count) {
+	for(let i=0; i < count; i++) {
+		stars.push(new Star((Math.random()*WIDTH)|0, (Math.random()*HEIGHT*3/4)|0 ,Math.random()<0.2?2:1));
+	}
+}
+
+
 //reset
 function resetGame() {
     //player
-    player.x = 280;
-    player.y = 380;
-    player.alive = true;
-    player.bullet = null;
-
+	player = new Player(WIDTH * 2 / 5, HEIGHT - 20);
+    
     //bunker
-    bunkers.length = 0; // svuota array
-    bunkers.push(new Bunker(150), new Bunker(300), new Bunker(450));
+    bunkers = [];
+	for(let i = 1; i < 4; i++) {
+		bunkers.push(new Bunker(i * WIDTH / 4));
+	}
 
     //alieni
-    aliens.length = 0;
-    for(let row=0; row<alienRowsCount; row++){
-        for(let col=0; col<alienColsCount; col++){
-            let ax = 80 + col*44;
-            let ay = 40 + row*32;
+    aliens = [];
+    for(let row = 0; row < alienRowsCount; row++){
+        for(let col = 0; col < alienColsCount; col++){
+            let ax = 80 + col * SCALE * 11;//8px + 3 di gap
+            let ay = 40 + row * SCALE * 8;//6px + 2 di gap
             aliens.push(new Alien(ax, ay, alienSprites[row % alienSprites.length]));
         }
     }
@@ -429,140 +536,165 @@ function resetGame() {
     ufo = null;
 	
     //bombe
-    bombs.length = 0;
+    bombs = [];
 	
 	//particelle
-    particles.length = 0;
+    particles = [];
 
+	//stelline
+	stars = [];
+	spawnStars(WIDTH / 5);
+	
     //direzione e frame
     dir = 1;
     frame = 0;
+	
+	gameover = false;
+	paused = false;
 }
 
 
+function loop(now) {
+	const dt = Math.min(1/30, (now-last)/1000); 
+	last = now;
 
+	//GAMEOVER
+	if (gameover) { 
+		ctx.clearRect(0,0,WIDTH,HEIGHT);
+		
+		//stelle
+		stars.forEach(s => s.draw(ctx));
+		
+		//alieni
+		aliens.forEach(a => {
+			if(!a.alive) return;
+			a.update(0);
+		});
+		
+		//ufo
+		ufo = new UFO();
+		ufo.x = WIDTH / 2;
+		ufo.update();
+		
+		//particelle
+		particles.forEach(p => p.update(dt));
+		
+		groundExplosionTimer -= dt;
+		
+		if(groundExplosionTimer <= 0) {
+			groundExplosionTimer = 0.1; //frequenza
+			const x = Math.random() * WIDTH;
+			const y = HEIGHT - 10;
+			doExplode(x, y, 40);
+		}
+		
+		ctx.font = '96px monospace';
+		ctx.textAlign = 'center';
+		ctx.fillText('GAME OVER', WIDTH/2, HEIGHT/2);
+		
+		frame++;
+	}
+  
+	//GAME...
+	if (!paused && !gameover) {
+		ctx.clearRect(0,0,WIDTH,HEIGHT);
+		
+		//stelle
+		stars.forEach(s => s.draw(ctx));
+		
+		const alive = aliens.filter(a=>a.alive).length;
+		const speed = baseSpeed + (alienRowsCount*alienColsCount - alive)*0.05;
+		let edge = false;
+		
+		//WINNER
+		if (alive == 0) {
+			ctx.font = '96px monospace';
+			ctx.textAlign = 'center';
+			ctx.fillText('YOU WIN!', WIDTH/2, HEIGHT/2);
+		}
+		
+		
+		//alieni
+		aliens.forEach(a => {
+			if(!a.alive) return;
+			a.update(speed*dir);
+			if(a.x<30 || a.x>(WIDTH-30)) edge=true;
+			
+			//alieno morto
+			if(player.bullet && Math.abs(player.bullet.x - a.x) < 8 * SCALE && Math.abs(player.bullet.y - a.y) < 6 * SCALE	 ) {
+				doExplode(a.x, a.y, 10);
+				a.alive = false;
+				player.bullet = null;
+			}
+			
+			//bunker distrutto quando un alieno scende troppo
+			bunkers.forEach(b=>{
+				if(b.alive && Math.abs(a.y - b.y) < 10 * SCALE) b.alive = false;// bunker sparisce proprio
+			});
+	  
+			//terra distrutta quando un alieno scende troppo
+			if(a.y > HEIGHT - 20) {
+				player.alive = false;
+				gameover = true;
+				doExplode(player.x, player.y, 40);
+			}
+		});
+	
+		//alieni toccano bordo -> invertire rotta, aumentare velocita :-)
+		if(edge){
+			dir*=-1; 
+			aliens.forEach(a => a.y += 10);
+		}
+	
+		//player spara al bunker :(
+		if(player.bullet) {
+			bunkers.forEach(b => {
+				if(player.bullet && b.hit(player.bullet.x, player.bullet.y, 1)) {
+					player.bullet = null;
+				}
+			});
+		}
+		
+		//player puo' sparare alle bombette e distruggerle!!!
+		if(player.bullet) {
+			bombs.forEach(b => {
+				if(player.bullet && Math.abs(player.bullet.x - b.x) <= 4 && Math.abs(player.bullet.y - b.y) <= 4) {
+					player.bullet = null;
+					b.alive = false;
+					doExplode(b.x, b.y, 10);
+				}
+			});
+		}
+	
+		//disegno bunker
+		bunkers.forEach(b => b.draw());
 
-/* === GAME SETUP === */
-const player = new Player();
-const bunkers = [];
-const aliens = [];
-const bombs = [];
-const particles = [];//pezzetti di player :-)
-let ufo=null;
-let dir=1;
-let baseSpeed=0.4;
-let alienRowsCount = 6;
-let alienColsCount = 8;
+		//disegno player
+		player.update();
+	
+		//bombe alieni
+		bombs.forEach(b => b.update());
+		for(let i = bombs.length - 1; i >= 0; i--) if(!bombs[i].alive) bombs.splice(i,1);
+
+		//UFO
+		if(!ufo && Math.random()<0.002) ufo = new UFO();
+		if(ufo){
+			ufo.update();
+			if(!ufo.alive) ufo=null;
+		}
+	
+		//particelle
+		particles.forEach(p=>p.update(dt));
+	
+		frame++;
+	}
+	
+	requestAnimationFrame(loop);
+}
 
 resetGame();
 
-//LOOOOOOP
-let last = performance.now();
-
-function loop(now){
-  const dt = Math.min(1/30, (now-last)/1000); 
-  last = now;
-
-  if(!paused){
-    ctx.clearRect(0,0,600,400);
-    const alive = aliens.filter(a=>a.alive).length;
-    const speed = baseSpeed + (alienRowsCount*alienColsCount - alive)*0.05;
-    let edge=false;
-
-	//alieni
-    aliens.forEach(a=>{
-      if(!a.alive) return;
-      //a.x+=dir*speed;
-	  a.update(speed*dir);
-      if(a.x<30 || a.x>570) edge=true;
-      
-      //alieno morto
-      if(player.bullet &&
-         Math.abs(player.bullet.x - a.x) < 8 * SCALE &&
-         Math.abs(player.bullet.y - a.y) < 6 * SCALE
-		 ){
-			doExplode(a.x, a.y, 10);
-			a.alive=false;
-			player.bullet=null;
-      }
-	  
-	  //bunker distrutto quando un alieno scende troppo
-	  bunkers.forEach(b=>{
-		if(b.alive && Math.abs(a.y - b.y) < 10 * SCALE) b.alive = false;// bunker sparisce
-	  });
-    });
-	
-	//alieni toccano bordo -> invertire rotta, aumentare velocita :-)
-    if(edge){
-		dir*=-1; 
-		aliens.forEach(a=>a.y+=10);
-	}
-	
-	//player spara al bunker :(
-    if(player.bullet) {
-		bunkers.forEach(b=>{
-			if(player.bullet && b.hit(player.bullet.x,player.bullet.y,1)) {
-				player.bullet=null;
-			}
-		});
-	}
-	
-    //disegno bunker
-    bunkers.forEach(b=>b.draw());
-
-    //disegno player
-    player.update();
-	
-	//bombe alieni
-    bombs.forEach(b=> b.update());
-	for(let i=bombs.length-1;i>=0;i--) if(!bombs[i].alive) bombs.splice(i,1);
-
-    //UFO
-    if(!ufo && Math.random()<0.002) ufo = new UFO();
-    if(ufo){
-		ufo.update();
-        if(!ufo.alive) ufo=null;
-	}
-	
-	//particelle
-	particles.forEach(p=>p.update(dt));
-	
-    frame++;
-	
-	
-	let i = 10;
-	ctx.font = '10px monospace';
-	ctx.fillText('[P]: play/pause  -  [R]: reset  -  [X]: scanlines  -  [B]: bw',5,i);
-	
-	i+=10;	
-	ctx.fillText('player: '+player.x+','+player.y,5,i);
-	bunkers.forEach(b => {
-		i+=10;
-		ctx.fillText('bunker: '+b.x+','+b.y+' alive:'+b.alive,5,i);
-	});
-		
-	if(player.bullet != null) {
-		i+=10;
-		ctx.fillText('bullet: '+player.bullet.x+', '+player.bullet.y,5,i);
-	}
-	
-	bombs.forEach(b => {
-		i+=10;
-		ctx.fillText('bomb: '+b.x+','+b.y+' alive:'+b.alive,5,i);
-	});
-	
-	if(ufo) {
-		i+=10;
-		ctx.fillText('ufo: '+ufo.x+','+ufo.y+' alive:'+ufo.alive,5,i);
-	}
-	
-	}
-	
-	
-	
-  requestAnimationFrame(loop);
-}
-loop();
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
