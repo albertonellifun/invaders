@@ -8,7 +8,7 @@
 	<style>
 		body {
 			background:#000;
-			color:#0f0;
+			color:#444;
 			font-family:monospace;
 			text-align:center;
 			overflow: hidden;
@@ -24,7 +24,7 @@
 		h1, p, canvas {
 			margin: 4px 0;
 			padding: 4px;
-			border: 3px solid #0f0;
+			xxxborder: 3px solid #0f0;
 			width: 600px;
 		}
 		canvas {
@@ -51,7 +51,7 @@
 
 	<h1>Space Invaders - Apple ][ clone</h1>
 	<canvas id="game" width="600" height="400"></canvas>
-	<p>[P]: Play/Pause -  [R]: Reset -  [X]: ScanLines -  [B]: B/W</p>
+	<p>[P]lay/Pause - [R]eset - [X]scanLines - [C]olor change - [B]ackground change</p>
 
 <script>
 const canvas = document.getElementById("game");
@@ -82,8 +82,15 @@ let groundExplosionTimer = 0;
 let paused = false;//pause switch
 let gameover = false;//gameover switch
 let scanLinesEnabled = true;//scanlines switch
-let bw = false;//black&white switch
 let last = performance.now();//LOOOOOOP
+
+let currentColor = 0;//color change
+const COLORS = [
+	'#0f0',//verde
+	'#fff',//bianco
+	'#f80',//arancione
+];
+let currentBg = 0;//background cycle (0-none, 1-earth, 2-mountains, 3-skyline)
 
 
 //controlli
@@ -104,10 +111,12 @@ document.addEventListener("keydown", e => {
 		if (scanLinesEnabled) document.getElementById('scanlines-overlay').style.display = 'block';
 		else document.getElementById('scanlines-overlay').style.display = 'none';
 	}
-	else if(e.key.toLowerCase() === "b") { 
-		bw = !bw;
-		if(bw) document.body.style.filter = 'grayscale(1) contrast(4)';
-		else document.body.style.filter = '';
+	else if(e.key.toLowerCase() === "c") { 
+		currentColor = (currentColor+1)%COLORS.length;
+	}
+	else if(e.key.toLowerCase() === "b") {
+		//bg
+		currentBg = (currentBg+1)%4;
 	}
 });
 document.addEventListener("keyup", e => keys[e.key] = false);
@@ -268,7 +277,7 @@ const bulletSprite = ["010","010","010","010"];//bullet: 3x4
 
 //disegna in modo quadrettoso [0=pixel spento, 1=pixel acceso]
 function drawSprite(sprite, x, y){
-  ctx.fillStyle = '#0f0';
+  ctx.fillStyle = COLORS[currentColor];
   const rows = sprite.length;
   const cols = sprite[0].length;
   const offsetX = (cols * SCALE) / 2;
@@ -356,7 +365,7 @@ class Alien {
 class Bunker {
   constructor(x){
     this.x = x; 
-	this.y = HEIGHT - 80;
+	this.y = HEIGHT - 70;
     this.mask = bunkerSprite.map(r=>r.split(""));//array di caratteri, le stringhe sono immutabili
 	this.alive = true;
   }
@@ -511,6 +520,115 @@ function spawnStars(count) {
 }
 
 
+
+//pianeta terra
+function drawEarthGlobe(){
+	if(currentBg === 0) return;
+	
+	const planetX = WIDTH / 2;
+	const planetY = HEIGHT * 20;
+	const planetR = HEIGHT * 19.2;
+	const startA = Math.PI * 1.48;
+	const endA   = Math.PI * 1.52;
+	
+	ctx.strokeStyle = COLORS[currentColor];
+	
+	const grad = ctx.createLinearGradient(0, 300, 0, 400);
+	grad.addColorStop(0, 'rgba(0,0,0,1)');
+	grad.addColorStop(1, currentColor == 0 ? 'rgba(0,140,0,0.1)' 
+						: currentColor == 1 ? 'rgba(140,140,140,0.1)'
+						: 'rgba(140,0,0,0.1)'
+						);
+	ctx.fillStyle = grad;
+	
+	if (currentBg === 1) {
+		//bordo pianeta
+		ctx.beginPath();
+		ctx.moveTo(0, 400);
+		ctx.arc(
+			planetX,
+			planetY,
+			planetR,
+			startA,
+			endA
+		);
+		ctx.stroke();
+		ctx.lineTo(600,400);
+		ctx.lineTo(0,400);
+		ctx.closePath();
+		ctx.fill();
+	}
+  
+	if (currentBg === 2) {
+		//montagne
+		ctx.beginPath();
+		const steps = 40;
+		
+		ctx.moveTo(0, 400);
+		for(let i = 0; i <= steps; i++){
+			const t = i / steps;
+			const a = startA + (endA - startA) * t;
+			
+			// punto base sull'arco
+			const x = planetX + Math.cos(a) * planetR;
+			const y = planetY + Math.sin(a) * planetR;
+			
+			// altezza montagna
+			const h = Math.sin(x * 0.02) * 12 +
+				Math.sin(x * 0.05) * 5;
+			
+			// normale all'arco (verso l'alto)
+			const nx = Math.cos(a);
+			const ny = Math.sin(a);
+			
+			const mx = x + nx * h;
+			const my = y + ny * h;
+
+			ctx.lineTo(mx, my);
+		}
+		ctx.lineTo(600,400);
+		ctx.lineTo(0,400);
+		ctx.closePath();
+		ctx.stroke();
+		ctx.fill();
+	}
+	
+	if (currentBg === 3) {
+		//grattacieli rettangolari (TODO: gorilla.bas)
+		const steps = 60;
+		const buildingWidth = 14;
+		
+		ctx.beginPath();
+		ctx.moveTo(0, 350);
+		for(let i = 0; i <= steps; i++) {
+			const t = i / steps;
+			const a = startA + (endA - startA) * t;
+			
+			// base sull'arco
+			const x = planetX + Math.cos(a) * planetR;
+			const y = planetY + Math.sin(a) * planetR;
+			
+			// altezza edificio deterministica da x
+			const h = 20 + Math.floor(Math.sin(x * 0.05) * Math.cos(x * 0.2) * 20);
+			
+			// rettangolo verticale
+			ctx.lineTo(x - buildingWidth/2, y - h);
+			ctx.lineTo(x + buildingWidth/2, y - h);
+			ctx.lineTo(x + buildingWidth/2, y);
+			ctx.lineTo(x + buildingWidth/2 + 1, y);
+			ctx.stroke();
+		}
+		ctx.lineTo(600,350);
+		ctx.lineTo(600,400);
+		ctx.lineTo(0,400);
+		ctx.lineTo(0,350);
+		ctx.closePath();
+		ctx.fill();
+	}
+	ctx.fillStyle=COLORS[currentColor];//ripristina fill
+}
+
+
 //reset
 function resetGame() {
     //player
@@ -599,6 +717,9 @@ function loop(now) {
 	if (!paused && !gameover) {
 		ctx.clearRect(0,0,WIDTH,HEIGHT);
 		
+		//pianeta terra
+		drawEarthGlobe();
+		
 		//stelle
 		stars.forEach(s => s.draw(ctx));
 		
@@ -633,7 +754,7 @@ function loop(now) {
 			});
 	  
 			//terra distrutta quando un alieno scende troppo
-			if(a.y > HEIGHT - 20) {
+			if(a.y > HEIGHT - 25) {
 				player.alive = false;
 				gameover = true;
 				doExplode(player.x, player.y, 40);
