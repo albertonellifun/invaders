@@ -520,6 +520,52 @@ function spawnStars(count) {
 }
 
 
+//saturno
+function drawSaturnSlice() {
+	const cx = WIDTH + 1;   // centro fuori dallo schermo a destra
+	const cy = -1;      // centro fuori in alto
+	const r  = 70;
+	
+	ctx.strokeStyle = COLORS[currentColor];
+	
+	//pianeta
+	const gradPlanet = ctx.createLinearGradient(cx-r, 0, cx, r);
+	gradPlanet.addColorStop(0, 'rgba(0,0,0,1)');
+	gradPlanet.addColorStop(1, currentColor == 0 ? 'rgba(0,140,0,0.1)' 
+						: currentColor == 1 ? 'rgba(140,140,140,0.1)'
+						: 'rgba(140,0,0,0.1)'
+						);
+	ctx.fillStyle = gradPlanet;
+  
+	ctx.beginPath();
+	ctx.moveTo(cx, cy);
+	ctx.arc( cx, cy, r, Math.PI / 2, Math.PI );
+	ctx.closePath();
+	ctx.stroke();
+	ctx.fill();
+  
+  
+	//ANELLI
+	const gradRings = ctx.createLinearGradient(0, 0, 0, r);
+	gradRings.addColorStop(0, 'rgba(0,0,0,1)');
+	gradRings.addColorStop(1, currentColor == 0 ? 'rgba(0,140,0,0.1)' 
+						: currentColor == 1 ? 'rgba(140,140,140,0.1)'
+						: 'rgba(140,0,0,0.1)'
+						);
+	ctx.fillStyle = gradRings;
+
+	ctx.beginPath();
+	// ellisse esterna
+	ctx.ellipse( cx, cy, r * 1.4, r * 0.35, -0.3, Math.PI * 0.5, Math.PI * 1.26 );
+	
+	// ellisse interna (inverso!)
+	ctx.ellipse( cx, cy, r * 1.1, r * 0.28, -0.3, Math.PI * 1.15, Math.PI * 0.5, true );
+	
+	ctx.closePath();
+	ctx.stroke();
+	ctx.fill();
+}
+
 
 //pianeta terra
 function drawEarthGlobe(){
@@ -541,10 +587,13 @@ function drawEarthGlobe(){
 						);
 	ctx.fillStyle = grad;
 	
+	//aggiungo saturno per la libidine totale
+	drawSaturnSlice();
+	
 	if (currentBg === 1) {
 		//bordo pianeta
 		ctx.beginPath();
-		ctx.moveTo(0, 400);
+		ctx.moveTo(-1, 325);
 		ctx.arc(
 			planetX,
 			planetY,
@@ -552,11 +601,12 @@ function drawEarthGlobe(){
 			startA,
 			endA
 		);
-		ctx.stroke();
-		ctx.lineTo(600,400);
-		ctx.lineTo(0,400);
+		ctx.lineTo(601,325);
+		ctx.lineTo(601,401);
+		ctx.lineTo(-1,401);
 		ctx.closePath();
 		ctx.fill();
+		ctx.stroke();
 	}
   
 	if (currentBg === 2) {
@@ -564,7 +614,7 @@ function drawEarthGlobe(){
 		ctx.beginPath();
 		const steps = 40;
 		
-		ctx.moveTo(0, 400);
+		ctx.moveTo(-1, 325);
 		for(let i = 0; i <= steps; i++){
 			const t = i / steps;
 			const a = startA + (endA - startA) * t;
@@ -586,11 +636,12 @@ function drawEarthGlobe(){
 
 			ctx.lineTo(mx, my);
 		}
-		ctx.lineTo(600,400);
-		ctx.lineTo(0,400);
+		ctx.lineTo(601,335);
+		ctx.lineTo(601,401);
+		ctx.lineTo(-1,401);
 		ctx.closePath();
-		ctx.stroke();
 		ctx.fill();
+		ctx.stroke();
 	}
 	
 	if (currentBg === 3) {
@@ -599,7 +650,7 @@ function drawEarthGlobe(){
 		const buildingWidth = 14;
 		
 		ctx.beginPath();
-		ctx.moveTo(0, 350);
+		ctx.moveTo(-1, 305);
 		for(let i = 0; i <= steps; i++) {
 			const t = i / steps;
 			const a = startA + (endA - startA) * t;
@@ -618,12 +669,13 @@ function drawEarthGlobe(){
 			ctx.lineTo(x + buildingWidth/2 + 1, y);
 			ctx.stroke();
 		}
-		ctx.lineTo(600,350);
-		ctx.lineTo(600,400);
-		ctx.lineTo(0,400);
-		ctx.lineTo(0,350);
+		ctx.lineTo(601,305);
+		ctx.lineTo(601,401);
+		ctx.lineTo(-1,401);
+		ctx.lineTo(-1,300);
 		ctx.closePath();
 		ctx.fill();
+		ctx.stroke();
 	}
 	ctx.fillStyle=COLORS[currentColor];//ripristina fill
 }
