@@ -90,7 +90,7 @@ const COLORS = [
 	'#fff',//bianco
 	'#f80',//arancione
 ];
-let currentBg = 0;//background cycle (0-none, 1-earth, 2-mountains, 3-skyline)
+let currentBg = 0;//background cycle (0-none, 1-earth, 2-mountains)
 
 
 //controlli
@@ -116,33 +116,132 @@ document.addEventListener("keydown", e => {
 	}
 	else if(e.key.toLowerCase() === "b") {
 		//bg
-		currentBg = (currentBg+1)%4;
+		currentBg = (currentBg+1)%3;
 	}
 });
 document.addEventListener("keyup", e => keys[e.key] = false);
 
-//TODO: ALIENI 12x8
+//ALIENI REALI: 12x8 
+//teschio piccolo real: 12x8
+const alien1x = [
+"000011111000",
+"000111111100",
+"001100100110",
+"001111111110",
+"000001110000",
+"000010001000",
+"000100000100",
+"000011011000"];
+const alien1y = [
+"000011111000",
+"000111111100",
+"001100100110",
+"001111111110",
+"000001110000",
+"000010001000",
+"000100000100",
+"001000000010"];
+//capoccione real: 12x8
+const alien2x = [
+"001000001000",
+"000100010000",
+"001111111000",
+"011011101100",
+"111111111110",
+"101111111010",
+"101000001010",
+"000110110000"];
+const alien2y = [
+"001000001000",
+"100100010010",
+"101111111010",
+"011011101100",
+"111111111110",
+"001111111000",
+"001000001000",
+"010000000100"];
+//triangolo real: 12x8
+const alien3x = [
+"000001100000",
+"000011110000",
+"000111111000",
+"001101101100",
+"001111111100",
+"000010010000",
+"000101101000",
+"001010010100"];
+const alien3y = [
+"000001100000",
+"000011110000",
+"000111111000",
+"001101101100",
+"001111111100",
+"000010010000",
+"000100001000",
+"000010010000"];
+//teschio real: 12x8
+const alien4x = [
+"000011110000",
+"011111111110",
+"111111111111",
+"111001100111",
+"111111111111",
+"000110011000",
+"001001100100",
+"000100001000"];
+const alien4y = [
+"000011110000",
+"011111111110",
+"111111111111",
+"111001100111",
+"111111111111",
+"000110011000",
+"001101101100",
+"110000000011"];
+//ufo real: 16x7
+const ufoSprite1x = [
+"0000011111100000",
+"0001111111111000",
+"0011111111111100",
+"0110110110110110",
+"1111111111111111",
+"0011100110011100",
+"0001000000001000"];
+const ufoSprite1y = [
+"0000011111100000",
+"0001111111111000",
+"0011111111111100",
+"0101101101101110",
+"1111111111111111",
+"0011100110011100",
+"0001000000001000"];
+
+//ALIENI ALB: 8x6
 //piccolo: 8x6
-const alien1a = ["00111000",
+const alien1a = [
+	"00111000",
 	"01111100",
 	"11011010",
 	"11111110",
 	"00100100",
 	"01000010"];
-const alien1b = ["00111000",
+const alien1b = [
+	"00111000",
 	"01111100",
 	"11011010",
 	"11111110",
 	"01000010",
 	"00100100"];
 //capoccione: 8x6
-const alien2a = ["00111100",
+const alien2a = [
+	"00111100",
 	"01111110",
 	"11011101",
 	"11111111",
 	"01011010",
 	"10100101"];
-const alien2b = ["00111100",
+const alien2b = [
+	"00111100",
 	"01111110",
 	"11011101",
 	"11111111",
@@ -208,15 +307,25 @@ const alien6b = [
 	"01111110",
 	"10011001",
 	"01000010"];
-
-//player: 11x6 
+//ufoSprite: 12x4
+const ufoSprite1a = [
+    "000111111000",
+    "011111111110",
+    "111011101111",
+    "011111111110"];
+const ufoSprite1b = [
+    "000111111000",
+    "011111111110",
+    "110111011101",
+    "011111111110"];
+//player: 12x6 
 const playerTankSprite = [
-    "00000100000",
-	"00001110000",
-    "01111111110",
-    "11111111111",
-    "11111111111",
-    "11111111111"];
+    "000001000000",
+	"000011100000",
+    "011111111100",
+    "111111111110",
+    "111111111110",
+    "111111111110"];
 //bunker: 16x10
 const bunkerSprite = [
     "0011111111111100",
@@ -229,18 +338,9 @@ const bunkerSprite = [
     "1111100000011111",
     "1111000000001111",
 	"1110000000000111"];
-//ufoSprite
-const ufoSprite1 = [
-    "000111111000",
-    "011111111110",
-    "111011101111",
-    "011111111110"];
-const ufoSprite2 = [
-    "000111111000",
-    "011111111110",
-    "110111011101",
-    "011111111110"];
-const ufoSprites = [ ufoSprite1, ufoSprite2 ];
+
+	
+const ufoSprites = [ ufoSprite1a, ufoSprite1b ];
 
 const alienSprites = [
     [alien3a, alien3b],
@@ -250,29 +350,39 @@ const alienSprites = [
 	[alien6a, alien6b],	
 	[alien1a, alien1b]];
 
-const bombSprite1 = [
+
+const ufoSpritesREAL = [ ufoSprite1x, ufoSprite1y ];
+const alienSpritesREAL = [
+    [alien3x, alien3y],
+	[alien2x, alien2y],
+	[alien4x, alien4y],
+	[alien1x, alien1y]];
+
+
+
+const bombSprite1a = [
 	"010",
 	"100",
 	"010",
 	"100"];
-const bombSprite2 = [
+const bombSprite1b = [
 	"100",
 	"010",
 	"100",
 	"010"];
-const bombSprite3 = [
+const bombSprite1c = [
 	"010",
 	"001",
 	"010",
 	"001"];
-const bombSprite4 = [
+const bombSprite1d = [
 	"001",
 	"010",
 	"001",
 	"010"];
-const bombSprites = [bombSprite1, bombSprite2, bombSprite3, bombSprite4];
+const bombSprites = [bombSprite1a, bombSprite1b, bombSprite1c, bombSprite1d];
 
-const bulletSprite = ["010","010","010","010"];//bullet: 3x4
+const bulletSprite = ["010","000","010","010"];//bullet: 3x4
 
 
 //disegna in modo quadrettoso [0=pixel spento, 1=pixel acceso]
@@ -311,7 +421,7 @@ class Player {
     if(keys["ArrowLeft"]) this.x -= 4;
     if(keys["ArrowRight"]) this.x += 4;
 	if(this.x < 30) this.x = 30;
-	if(this.x > 570) this.x = 570;
+	if(this.x > WIDTH - 30) this.x = WIDTH - 30;
 	
     if(keys[" "] && !this.bullet) this.bullet = {x:this.x, y:this.y};
     
@@ -643,40 +753,6 @@ function drawEarthGlobe(){
 		ctx.fill();
 		ctx.stroke();
 	}
-	
-	if (currentBg === 3) {
-		//grattacieli rettangolari (TODO: gorilla.bas)
-		const steps = 60;
-		const buildingWidth = 14;
-		
-		ctx.beginPath();
-		ctx.moveTo(-1, 305);
-		for(let i = 0; i <= steps; i++) {
-			const t = i / steps;
-			const a = startA + (endA - startA) * t;
-			
-			// base sull'arco
-			const x = planetX + Math.cos(a) * planetR;
-			const y = planetY + Math.sin(a) * planetR;
-			
-			// altezza edificio deterministica da x
-			const h = 20 + Math.floor(Math.sin(x * 0.05) * Math.cos(x * 0.2) * 20);
-			
-			// rettangolo verticale
-			ctx.lineTo(x - buildingWidth/2, y - h);
-			ctx.lineTo(x + buildingWidth/2, y - h);
-			ctx.lineTo(x + buildingWidth/2, y);
-			ctx.lineTo(x + buildingWidth/2 + 1, y);
-			ctx.stroke();
-		}
-		ctx.lineTo(601,305);
-		ctx.lineTo(601,401);
-		ctx.lineTo(-1,401);
-		ctx.lineTo(-1,300);
-		ctx.closePath();
-		ctx.fill();
-		ctx.stroke();
-	}
 	ctx.fillStyle=COLORS[currentColor];//ripristina fill
 }
 
@@ -695,10 +771,13 @@ function resetGame() {
     //alieni
     aliens = [];
     for(let row = 0; row < alienRowsCount; row++){
+		let sprit = alienSprites[row % alienSprites.length];
+		let hsize = sprit[0][0].length;
+		let vsize = sprit[0].length;
         for(let col = 0; col < alienColsCount; col++){
-            let ax = 80 + col * SCALE * 11;//8px + 3 di gap
-            let ay = 40 + row * SCALE * 8;//6px + 2 di gap
-            aliens.push(new Alien(ax, ay, alienSprites[row % alienSprites.length]));
+			let ax = 80 + col * SCALE * (hsize + 2);//8px + 2 di gap//12px
+            let ay = 40 + row * SCALE * (vsize + 2);//6px + 2 di gap//8px
+            aliens.push(new Alien(ax, ay, sprit));
         }
     }
 
@@ -735,6 +814,9 @@ function loop(now) {
 		//stelle
 		stars.forEach(s => s.draw(ctx));
 		
+		//pianeta terra
+		drawEarthGlobe();
+		
 		//alieni
 		aliens.forEach(a => {
 			if(!a.alive) return;
@@ -769,14 +851,14 @@ function loop(now) {
 	if (!paused && !gameover) {
 		ctx.clearRect(0,0,WIDTH,HEIGHT);
 		
-		//pianeta terra
-		drawEarthGlobe();
-		
 		//stelle
 		stars.forEach(s => s.draw(ctx));
 		
+		//pianeta terra
+		drawEarthGlobe();
+		
 		const alive = aliens.filter(a=>a.alive).length;
-		const speed = baseSpeed + (alienRowsCount*alienColsCount - alive)*0.05;
+		const speed = baseSpeed + (alienRowsCount * alienColsCount - alive) * 0.05;
 		let edge = false;
 		
 		//WINNER
@@ -850,7 +932,7 @@ function loop(now) {
 		for(let i = bombs.length - 1; i >= 0; i--) if(!bombs[i].alive) bombs.splice(i,1);
 
 		//UFO
-		if(!ufo && Math.random()<0.002) ufo = new UFO();
+		if(!ufo && Math.random()<0.002 && alive > 0) ufo = new UFO();
 		if(ufo){
 			ufo.update();
 			if(!ufo.alive) ufo=null;
