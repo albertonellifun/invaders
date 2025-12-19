@@ -98,15 +98,15 @@ const COLORS = [
 	'#0f0',//verde
 	'#fff',//bianco
 	'#f80',//arancione
-	//'#5ff',//cyan
-	//'#f5f',//purple
+	'#5ff',//cyan
+	'#f5f',//purple
 ];
 const COLORS_RGBA = [
 	'rgba(0,140,0,0.1)',//verdone trasp
 	'rgba(140,140,140,0.1)',//grigio trasp
 	'rgba(140,0,0,0.1)',//arancio trasp
-	//'rgba(0,140,140,0.1)',//cyan trasp
-	//'rgba(140,0,140,0.1)',//purple trasp
+	'rgba(0,140,140,0.1)',//cyan trasp
+	'rgba(140,0,140,0.1)',//purple trasp
 ];
 let currentBg = 0;//background cycle (0-none, 1-earth, 2-mountains)
 
@@ -525,8 +525,8 @@ class Bunker {
 
     for(let y = -radius; y <= radius; y++){
         for(let x = -radius; x <= radius; x++){
-            if(x*x + y*y > radius*radius) continue;
             const bx = cx + x;
+            if(x*x + y*y > radius*radius) continue;
             const by = cy + y;
             if(
                 by >= 0 && by < this.mask.length &&
@@ -566,9 +566,9 @@ class Bomb {
 			setTimeout(function(){ player.alive = true;},3000);
 		}
 		
-        // collision bunker
+        // collision bunker - radius reale
         bunkers.forEach(b=>{ 
-			if(b.hit(this.x, this.y, 3)) {
+			if(b.hit(this.x, this.y, 1)) {
 				this.alive=false; 
 			}
 		});
@@ -582,11 +582,14 @@ class UFO {
 		this.y = 15; 
 		this.sprite = ufoSprites;
 		this.alive = true;
+		this.vx = 2;
+		this.vy = 0;
 	}
     update(){
 		if(!this.alive) return;
         
-		this.x += 2;
+		this.x += this.vx;
+		this.y += this.vy;
         
 		//collisione bullet 12x4
 		if(player.bullet && Math.abs(player.bullet.x - this.x) <= 6 * SCALE && Math.abs(player.bullet.y - this.y) <= 2 * SCALE){
@@ -712,7 +715,7 @@ function drawEarthGlobe(){
 	
 	ctx.strokeStyle = COLORS[currentColor];
 	
-	const grad = ctx.createLinearGradient(0, 300, 0, 400);
+	const grad = ctx.createLinearGradient(0, 300, 0, HEIGHT);
 	grad.addColorStop(0, 'rgba(0,0,0,1)');
 	grad.addColorStop(1, COLORS_RGBA[currentColor]);
 	ctx.fillStyle = grad;
@@ -731,9 +734,9 @@ function drawEarthGlobe(){
 			startA,
 			endA
 		);
-		ctx.lineTo(601,325);
-		ctx.lineTo(601,401);
-		ctx.lineTo(-1,401);
+		ctx.lineTo(WIDTH+1,325);
+		ctx.lineTo(WIDTH+1,HEIGHT+1);
+		ctx.lineTo(-1,HEIGHT+1);
 		ctx.closePath();
 		ctx.fill();
 		ctx.stroke();
@@ -766,9 +769,9 @@ function drawEarthGlobe(){
 
 			ctx.lineTo(mx, my);
 		}
-		ctx.lineTo(601,335);
-		ctx.lineTo(601,401);
-		ctx.lineTo(-1,401);
+		ctx.lineTo(WIDTH+1,335);
+		ctx.lineTo(WIDTH+1,HEIGHT+1);
+		ctx.lineTo(-1,HEIGHT+1);
 		ctx.closePath();
 		ctx.fill();
 		ctx.stroke();
@@ -837,19 +840,23 @@ function loop(now) {
 		//pianeta terra
 		drawEarthGlobe();
 		
-		//alieni
+		//alieni fermi
 		aliens.forEach(a => {
 			if(!a.alive) return;
 			a.update(0);
 		});
 		
+		//aggiorna eventuali bombette
+		bombs.forEach(b => b.update());
+		
 		//ufo
-		ufo = new UFO();
+		if(!ufo) ufo = new UFO();
 		ufo.x = WIDTH / 2;
+		ufo.vx = 0;
+		ufo.vy = ufo.y < 2*HEIGHT/5 ? 2 : 0;
 		ufo.update();
 		playSound('ufoSound');
-		setTimeout(function(){ stopUfoSound();} , 5000);
-		
+				
 		//particelle
 		particles.forEach(p => p.update(dt));
 		
@@ -879,6 +886,7 @@ function loop(now) {
 		//pianeta terra
 		drawEarthGlobe();
 		
+		//calcola velocita alieni
 		const alive = aliens.filter(a=>a.alive).length;
 		const speed = baseSpeed + (alienRowsCount * alienColsCount - alive) * 0.05;
 		let edge = false;
@@ -890,8 +898,7 @@ function loop(now) {
 			ctx.fillText('YOU WIN!', WIDTH/2, HEIGHT/2);
 		}
 		
-		
-		//alieni
+		//alieni in movimento
 		aliens.forEach(a => {
 			if(!a.alive) return;
 			a.update(speed*dir);
